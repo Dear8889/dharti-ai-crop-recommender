@@ -2,47 +2,74 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-# 1. Load the AI model we trained yesterday
-# We use try-except just in case the file isn't in the exact right spot
+# 1. Load the AI model
 try:
     model = joblib.load('crop_model.pkl')
 except FileNotFoundError:
     st.error("Model not found! Make sure 'crop_model.pkl' is in the same folder.")
 
-# 2. Set up the UI Headers
+# 2. Define the translation dictionary
+texts = {
+    "English": {
+        "title": "🌱 DHARTI AI: Climate-Resilient Crop Recommender",
+        "subtitle": "Enter the local soil metrics and weather data below to get an AI-driven crop recommendation for marginal farmers.",
+        "sidebar_header": "Input Farm Data",
+        "nitrogen": "Nitrogen (N)",
+        "phosphorus": "Phosphorus (P)",
+        "potassium": "Potassium (K)",
+        "temp": "Temperature (°C)",
+        "humidity": "Humidity (%)",
+        "ph": "Soil pH",
+        "rain": "Rainfall (mm)",
+        "button": "Predict Best Crop",
+        "success": "🌾 **Recommended Crop to Plant:**"
+    },
+    "Hindi": {
+        "title": "🌱 धरती AI: जलवायु-अनुकूल फसल सलाहकार",
+        "subtitle": "सीमांत किसानों के लिए AI-संचालित फसल अनुशंसा प्राप्त करने के लिए नीचे स्थानीय मिट्टी और मौसम का डेटा दर्ज करें।",
+        "sidebar_header": "खेत का डेटा दर्ज करें",
+        "nitrogen": "नाइट्रोजन (N)",
+        "phosphorus": "फास्फोरस (P)",
+        "potassium": "पोटेशियम (K)",
+        "temp": "तापमान (°C)",
+        "humidity": "नमी (%)",
+        "ph": "मिट्टी का पीएच (pH)",
+        "rain": "वर्षा (mm)",
+        "button": "सर्वोत्तम फसल की भविष्यवाणी करें",
+        "success": "🌾 **अनुशंसित फसल:**"
+    }
+}
+
+# 3. Create the language selection dropdown FIRST
+st.sidebar.markdown("### 🌐 Language / भाषा")
+lang = st.sidebar.selectbox("Choose Interface Language", ["English", "Hindi"], label_visibility="collapsed")
+t = texts[lang]
+
+# 4. Page headers
 st.set_page_config(page_title="DHARTI AI: Crop Recommender", page_icon="🌱")
-st.title("🌱 DHARTI AI: Climate-Resilient Crop Recommender")
-st.markdown("Enter the local soil metrics and weather data below to get an AI-driven crop recommendation for marginal farmers.")
+st.title(t["title"])
+st.markdown(t["subtitle"])
+st.sidebar.header(t["sidebar_header"])
 
-# 3. Create the input sliders for the user
-st.sidebar.header("Input Farm Data")
+# 5. Input sliders (All have unique keys!)
+N = st.sidebar.slider(t["nitrogen"], 0, 140, 50, key="n")
+P = st.sidebar.slider(t["phosphorus"], 0, 145, 50, key="p")
+K = st.sidebar.slider(t["potassium"], 0, 205, 50, key="k")
+temperature = st.sidebar.slider(t["temp"], 5.0, 50.0, 25.0, key="temp")
+humidity = st.sidebar.slider(t["humidity"], 10.0, 100.0, 60.0, key="hum")
+ph = st.sidebar.slider(t["ph"], 3.0, 10.0, 6.5, key="ph_val")
+rainfall = st.sidebar.slider(t["rain"], 20.0, 300.0, 100.0, key="rain")
 
-# We use sliders with realistic ranges for these agricultural metrics
-N = st.sidebar.slider("Nitrogen (N)", 0, 140, 50)
-P = st.sidebar.slider("Phosphorus (P)", 0, 145, 50)
-K = st.sidebar.slider("Potassium (K)", 0, 205, 50)
-temperature = st.sidebar.slider("Temperature (°C)", 5.0, 50.0, 25.0)
-humidity = st.sidebar.slider("Humidity (%)", 10.0, 100.0, 60.0)
-ph = st.sidebar.slider("Soil pH", 3.0, 10.0, 6.5)
-rainfall = st.sidebar.slider("Rainfall (mm)", 20.0, 300.0, 100.0)
-
-# 4. The Prediction Engine
-if st.button("Predict Best Crop"):
-    # Organize the user inputs into the exact format the AI expects
+# 6. Prediction Engine (Unique key added here!)
+if st.button(t["button"], key="predict_btn"):
     user_input = pd.DataFrame({
-        'N': [N],
-        'P': [P],
-        'K': [K],
+        'N': [N], 'P': [P], 'K': [K],
         'temperature': [temperature],
         'humidity': [humidity],
         'ph': [ph],
         'rainfall': [rainfall]
     })
     
-    # Ask the AI to predict
     prediction = model.predict(user_input)
-    
-    # Display the result to the user!
-    st.success(f"🌾 **Recommended Crop to Plant:** {prediction[0].upper()}")
-    st.balloons() # A little Streamlit magic for the presentation
-    
+    st.success(f"{t['success']} {prediction[0].upper()}")
+    st.balloons()
